@@ -8,7 +8,7 @@
 
 #include "WProgram.h"
 
-class Morse
+class PID
 {
   public:
     PID(unsigned long *pulTimer,float fSetPoint);
@@ -16,6 +16,7 @@ class Morse
     void setI(float fI);
 	void setD(float fD);
 	void calulateDuty(int *piDuty, float fControl);
+	
   private:
     unsigned long ulTimer;
 	float fSetpoint;
