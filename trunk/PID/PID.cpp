@@ -13,7 +13,6 @@ PID::PID(unsigned long *pulTimer,float fSetPoint)
 	fProportional   = 1.0;
 	fIntegral   = 1.0;
 	fDerivative = 1.0;
-	iControlOld = 0;
 	iDutyCycle  = 0;
 	fError		= 0;
 	fErrorOld	= 0;
