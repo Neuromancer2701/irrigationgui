@@ -53,14 +53,18 @@ void MainWindow::on_Update_Constants_clicked()
     fTemp = Proportional[0].toFloat();
     buffer.setNum(int(fTemp*100));
     DataString += buffer;
+    DataString += ".";
+
 
     fTemp = Proportional[1].toFloat();
     buffer.setNum(int(fTemp*100));
     DataString += buffer;
+    DataString += ".";
 
     fTemp = Proportional[2].toFloat();
     buffer.setNum(int(fTemp*100));
     DataString += buffer;
+    DataString += ".";
 
     Integral[0] = ui->Ip_1->text();
     Integral[1] = ui->Ip_2->text();
@@ -70,14 +74,17 @@ void MainWindow::on_Update_Constants_clicked()
     fTemp = Integral[0].toFloat();
     buffer.setNum(int(fTemp*100));
     DataString += buffer;
+    DataString += ".";
 
     fTemp = Integral[1].toFloat();
     buffer.setNum(int(fTemp*100));
     DataString += buffer;
+    DataString += ".";
 
     fTemp = Integral[2].toFloat();
     buffer.setNum(int(fTemp*100));
     DataString += buffer;
+    DataString += ".";
 
     Derivative[0] = ui->Dp_1->text();
     Derivative[1] = ui->Dp_2->text();
@@ -87,10 +94,12 @@ void MainWindow::on_Update_Constants_clicked()
     fTemp = Derivative[0].toFloat();
     buffer.setNum(int(fTemp*100));
     DataString += buffer;
+    DataString += ".";
 
     fTemp = Derivative[1].toFloat();
     buffer.setNum(int(fTemp*100));;
     DataString += buffer;
+    DataString += ".";
 
     fTemp = Derivative[2].toFloat();
     buffer.setNum(int(fTemp*100));
