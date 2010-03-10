@@ -16,13 +16,13 @@ class PID
     void setI(float fI);
 	void setD(float fD);
 	void calulateDuty(int *piDuty, float fControl);
+	float fProportional;
+	float fIntegral;
+	float fDerivative;
 	
   private:
     unsigned long ulTimer;
 	float fSetpoint;
-	float fProportional;
-	float fIntegral;
-	float fDerivative;
 	float fError;
 	float fErrorOld;
 	int   iDutyCycle;
