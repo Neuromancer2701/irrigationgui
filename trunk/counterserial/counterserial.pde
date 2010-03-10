@@ -63,7 +63,9 @@ void protocol()
     {
       parsePIDstring(acIncoming, iCharCounter - 2);
       Serial.println("ack");
-      sscanf();
+      parsePIDstring(acIncoming, strlen(acIncoming));
+      
+      
     }
     cmd0 = 0;
     cmd1 = 0;    
@@ -86,11 +88,9 @@ void parsePIDstring(char *psInput, int iLength)
   int iCount = 0;
   char acBuffer[32];
   
-  while(iCount < iLength)
-  {
-    
-    
-    
-    iCount++;
-  }
+ 
+  sscanf(psInput,"%d.%d.%d.%d.%d.%d%.d.%d.%d",plant1.fProportional,plant2.fProportional, plant3.fProportional,
+  plant1.fIntegral,plant2.fIntegral,plant3.fIntegral,plant1.fDerivative,plant2.fDerivative,plant2.fDerivative);
+ Serial.println(plant1.) 
+ 
 }
