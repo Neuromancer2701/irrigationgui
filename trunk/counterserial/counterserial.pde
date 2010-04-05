@@ -3,18 +3,35 @@
 unsigned long ulTimer = 0;
 
 
-PID plant1(&ulTimer, 30);
-PID plant2(&ulTimer, 30);
-PID plant3(&ulTimer, 30);
+PID earth(&ulTimer, 30);
+PID wind(&ulTimer, 30);
+
+
+enum command 
+{
+  data = 1,
+  sync = 2,
+  pconstant = 3,
+  iconstant = 4,
+  dconstant = 5
+};
+
+
  
 int iCharCounter;
 int iCounter;
-char cmd0, cmd1;
+char cmd[3];
 char acbuffer[32];
 char acIncoming[64];
  
 void protocol();
-void parsePIDstring(char *psInput, int iLength);
+void sendData();         
+void syncTime();		 
+void updatePconstants();
+void updateIconstants();
+void updateDconstants();
+
+
   
   
 void setup()
@@ -34,63 +51,74 @@ void loop()
 
 void protocol()
 {
-     if( Serial.available() >= 2 ) 
-   {  // command length is 2 bytes
-     cmd0 = Serial.read();
-     cmd1 = Serial.read();
-   }
+	if( Serial.available() >= 3 ) 
+	{  // command length is 2 bytes
+	 cmd[0] = Serial.read();
+	 cmd[1] = Serial.read();
+	 cmd[2] = Serial.read();
+	}
 
-    sprintf(acbuffer, "GS%04d%04d%04d%02d%02d%02dDONE",iCounter, (iCounter * 2),(iCounter * 3),(iCounter/16),(iCounter/10),(iCounter/12));
-
-  if(cmd0 == 'G' && cmd1 == 'S')
-  {
-   
-    Serial.print(acbuffer);
-    cmd0 = 0;
-    cmd1 = 0;
-  }
-  else if(cmd0 == 'P')
-  {
-
-    iCharCounter = 0;
-    while (iCharCounter != 28) 
-    {
-     acIncoming[iCharCounter] = Serial.read();
-     iCharCounter++;
-    }
-
-    if(acIncoming[iCharCounter - 2]== 'D' && acIncoming[iCharCounter - 1] == 'O')
-    {
-      parsePIDstring(acIncoming, iCharCounter - 2);
-      Serial.println("ack");
-      parsePIDstring(acIncoming, strlen(acIncoming));
-      
-      
-    }
-    cmd0 = 0;
-    cmd1 = 0;    
-  }
-  else
-  {
-    cmd0 = 0;
-    cmd1 = 0;     
-  }
   
-  
-  delay(100);
-    iCounter++;
-    if(iCounter > 1000)
-      iCounter = 0;
+
+	if(cmd[0] == 'G' && cmd[1] == 'S')
+	{
+         switch(cmd[2])
+         {
+          case data:
+          sendData();
+          break;
+            		 
+          case sync:
+          syncTime();
+          break;
+            		 
+          case pconstant:
+          updatePconstants();
+          break;
+           		 
+          case iconstant:
+          updateIconstants();
+          break;
+            		 
+          case dconstant:
+          updateDconstants();
+          break;          
+          
+          case default:
+          //unknown command
+          break;
+          }
+	  cmd[0] = 0;
+          cmd[1] = 0;
+          cmd[2] = 0;	
+	}
+
 }
 
-void parsePIDstring(char *psInput, int iLength)
+
+void sendData()
 {
-  int iCount = 0;
-  char acBuffer[32];
-  
+ char acBuffer[64];
  
-  sscanf(psInput,"%d.%d.%d.%d.%d.%d%.d.%d.%d",plant1.fProportional,plant2.fProportional, plant3.fProportional,
-  plant1.fIntegral,plant2.fIntegral,plant3.fIntegral,plant1.fDerivative,plant2.fDerivative,plant2.fDerivative);
- Serial.println(plant1.) 
- 
+ sprintf(acBuffer, "GS%04d%04d%04d%02d%02d%02dDONE",iCounter, (iCounter * 2),(iCounter * 3),(iCounter/16),(iCounter/10),(iCounter/12));
+ Serial.print(acBuffer);  
+}
+
+            		 
+          
+void syncTime()
+{
+}
+            		 
+void  updatePconstants()
+{
+}
+           		 
+
+void updateIconstants()
+{
+}
+            		 
+void updateDconstants()
+{
 }
