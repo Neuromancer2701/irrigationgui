@@ -8,7 +8,7 @@
 
 PID::PID(unsigned long *pulTimer,float fSetPoint)
 {
-    ulTimer = *pulTimer;
+    pulGlobalTimer = pulTimer;
 	fSetpoint 	= fSetPoint;
 	fProportional   = 1.0;
 	fIntegral   = 1.0;
@@ -16,30 +16,39 @@ PID::PID(unsigned long *pulTimer,float fSetPoint)
 	iDutyCycle  = 0;
 	fError		= 0;
 	fErrorOld	= 0;
+	ulPWMTimer = *pulGlobalTimer + iDutyCycle;
 }
 
-void PID::setP(float fP)
-{
-   	fProportional   = fP;
-}
-
-void PID::setI(float fI)
-{
- 	fIntegral   = fI;
-}
-
-void PID::setD(float fD)
-{ 
-	fDerivative = fD;
-}
-
-void PID::calulateDuty(int *piDuty, float fControl)
+void PID::calulateDuty(float fControl)
 {
 	fError = fSetpoint - fControl;
 	iDutyCycle  = (fProportional * fError)  + (fIntegral * (fError + fErrorOld )/2)  + (fDerivative * (fError - fErrorOld )/2);
 	if(iDutyCycle > 100)
 		iDutyCycle = 100;
+		
+	if(iDutyCycle < 0)
+		iDutyCycle = 0;	
+	
 	fErrorOld = fError;
 	
-	*piDuty = iDutyCycle;
+}
+
+void PID::SetIOPins(int iPort, int iPinPush, int iPinPull) /* Only supporting two output pins in this first iteration Push is heating, pull is cooling*/
+{
+	int iTimer = *pulGlobalTimer;
+	bool bPull = bitRead(iPort, iPinPull);
+	
+	if(iTimer >= ulPWMTimer && bPull)
+	{
+	 bitSet(iPort, iPinPush);
+	 bitClear(iPort, iPinPull);
+	}
+	else if(iTimer >= iTimer + 100)
+	{
+	 bitClear(iPort, iPinPush);
+	 bitSet(iPort, iPinPull);
+	}
+
+	
+     ulPWMTimer = iTimer + iDutyCycle;
 }
