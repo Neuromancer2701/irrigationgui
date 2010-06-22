@@ -6,7 +6,7 @@
 #include "WProgram.h"
 #include "PID.h"
 
-PID::PID(unsigned long *pulTimer,float fSetPoint)
+PID::PID(volatile unsigned long *pulTimer,float fSetPoint)
 {
     pulGlobalTimer = pulTimer;
 	fSetpoint 	= fSetPoint;
@@ -33,7 +33,7 @@ void PID::calulateDuty(float fControl)
 	
 }
 
-void PID::SetIOPins(int iPort, int iPinPush, int iPinPull) /* Only supporting two output pins in this first iteration Push is heating, pull is cooling*/
+void PID::UpdateIOPins(int iPort, int iPinPush, int iPinPull) /* Only supporting two output pins in this first iteration Push is heating, pull is cooling*/
 {
 	int iTimer = *pulGlobalTimer;
 	bool bPull = bitRead(iPort, iPinPull);

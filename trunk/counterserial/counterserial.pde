@@ -10,11 +10,24 @@
 #define EARTH_COLD_PIN 1
 #define WIND_HOT_PIN   2
 #define WIND_COLD_PIN  3
+#define FIRE_PIN       4
+#define WATER_PIN      5
+
+#define READ_EARTH_PIN  0
+#define READ_WIND_PIN   1
+#define READ_FIRE_PIN   2
+#define READ_WATER_PIN  3
 
 
 char cmd[3];
 int iSetAlarms_g;
-unsigned long ulTimer = 0;
+volatile unsigned long ulTimer = 0;
+float fEarthTemp = 0;
+float fWindTemp  = 0;
+int iEarthRaw = 0;
+int iWindRaw  = 0;
+int iFireRaw  = 0;
+int iWaterRaw = 0;
 
 
 /* Classes,Struct Enums*/
@@ -31,6 +44,7 @@ enum command
 };
 
 /* Functions */
+float calculateTemp(int iRaw);
 void protocol();
 void sendData();         
 void syncTime();		 
@@ -39,36 +53,46 @@ void updateIconstants();
 void updateDconstants();
 void sunset();
 void sunrise();
-void MsCounter();
+void OneMsCounter(void)
+{
+ ulTimer++;
+}
 
 
-  
-  
+
+
+    
 void setup()
 {
-  // initialize the serial communication:
-  Serial.begin(38400);
-  MsTimer2::set(1, MsCounter); // 1ms period
-  MsTimer2::start();
-  iSetAlarms_g = 0;
+   // initialize the serial communication:
+   Serial.begin(38400);
+   MsTimer2::set(1, OneMsCounter); // 1ms period
+   MsTimer2::start();
+   iSetAlarms_g = 1;
 }
+
+
 
 void loop() 
 {
- float fEarthTemp = 0;
- float fWindTemp = 0;
+  iEarthRaw = analogRead(READ_EARTH_PIN);
+  iWindRaw  = analogRead(READ_WIND_PIN);
+  iFireRaw = analogRead(READ_FIRE_PIN);
+  iWaterRaw  = analogRead(READ_WATER_PIN);
+  
+ 
   if(iSetAlarms_g)
   {
     Alarm.alarmRepeat(SUNRISE,0,0, sunrise);
-	Alarm.alarmRepeat(SUNSET,0,0,sunset);
-	iSetAlarms_g = 0;
+    Alarm.alarmRepeat(SUNSET,0,0,sunset);
+    iSetAlarms_g = 0;
   }
   
   earth.calulateDuty(fEarthTemp);
   wind.calulateDuty(fWindTemp);
 
-  earth.SetIOPins(PORTD, EARTH_HOT_PIN , EARTH_COLD_PIN);
-  wind.SetIOPins(PORTD, WIND_HOT_PIN, WIND_COLD_PIN);
+  earth.UpdateIOPins(PORTD, EARTH_HOT_PIN , EARTH_COLD_PIN);
+  wind.UpdateIOPins(PORTD, WIND_HOT_PIN, WIND_COLD_PIN);
   
   protocol();
 
@@ -111,7 +135,7 @@ void protocol()
           updateDconstants();
           break;          
           
-          case default:
+          default:
           //unknown command
           break;
           }
@@ -126,6 +150,8 @@ void protocol()
 void sendData()
 {
  char acBuffer[64];
+ int iCounter = 17;
+ 
  
  sprintf(acBuffer, "GS%04d%04d%04d%02d%02d%02dDONE",iCounter, (iCounter * 2),(iCounter * 3),(iCounter/16),(iCounter/10),(iCounter/12));
  Serial.print(acBuffer);  
@@ -150,16 +176,16 @@ void syncTime()
 			break;
 	}
 	
-	if(!iError)
+	if(iError)
 	{
-		tTime = (time_t) atol(acTime);
-		setTime(tTime);
-		iSetAlarms_g = 1;
-		Serial.print("Synced");
+	  Serial.print("Protocol Sync error");
 	}
 	else
 	{
-		Serial.print("Protocol Sync error");
+	  tTime = (time_t) atol(acTime);
+	  setTime(tTime);
+	  iSetAlarms_g = 1;
+	  Serial.print("Synced");
 	}
 	
 	
@@ -182,13 +208,13 @@ void  updatePconstants()
 			break;
 	}
 	
-	if(!iError)
+	if(iError)
 	{
-
+          Serial.print("P Const error");
 	}
 	else
 	{
-		Serial.print("P Const error");
+
 	}
 }
            		 
@@ -210,13 +236,13 @@ void updateIconstants()
 			break;
 	}
 	
-	if(!iError)
+	if(iError)
 	{
-
+          Serial.print("I Const error");
 	}
 	else
 	{
-		Serial.print("I Const error");
+		
 	}
 }
             		 
@@ -237,29 +263,28 @@ void updateDconstants()
 			break;
 	}
 	
-	if(!iError)
+	if(iError)
 	{
-
+    	  Serial.print("D Const error");
 	}
 	else
 	{
-		Serial.print("D Const error");
+
 	}
 }
 
-
-extern "C"	void MsCounter()
-{
-	ulTimer++;
-}
-
-
 void sunset()
 {
-
+  bitSet(PORTD, FIRE_PIN);
 }
 
 void sunrise()
 {
-
+  bitClear(PORTD, FIRE_PIN);
 }
+
+float calculateTemp(int iRaw)
+{
+  
+}
+

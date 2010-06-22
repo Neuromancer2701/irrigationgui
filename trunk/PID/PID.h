@@ -11,15 +11,15 @@
 class PID
 {
   public:
-    PID(unsigned long *pulTimer,float fSetPoint);
-	void calulateDuty(int *piDuty, float fControl);
-	void SetIOPins(int iPort,int iPinPush, int iPinPull);
+    PID(volatile unsigned long *pulTimer,float fSetPoint);
+	void calulateDuty(float fControl);
+	void UpdateIOPins(int iPort,int iPinPush, int iPinPull);
 	float fProportional;
 	float fIntegral;
 	float fDerivative;
 	
   private:
-    unsigned long *pulGlobalTimer;
+    volatile unsigned long *pulGlobalTimer;
 	unsigned long ulPWMTimer;
 	float fSetpoint;
 	float fError;
