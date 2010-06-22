@@ -19,6 +19,15 @@
 #define READ_WATER_PIN  3
 
 
+/* Temporary variable from germination station code */
+#define coldco 		-0.711
+#define medco 		-0.432
+#define hotco 		-0.368
+#define Vc  		0.0049      // 5V/1024bits
+
+
+
+
 char cmd[3];
 int iSetAlarms_g;
 volatile unsigned long ulTimer = 0;
@@ -44,7 +53,7 @@ enum command
 };
 
 /* Functions */
-float calculateTemp(int iRaw);
+int calculateTemp(int iBits);
 void protocol();
 void sendData();         
 void syncTime();		 
@@ -283,8 +292,34 @@ void sunrise()
   bitClear(PORTD, FIRE_PIN);
 }
 
-float calculateTemp(int iRaw)
+int calculateTemp(int iBits)
 {
+  int temp  = 0;
+  int volts = 0;
   
+  volts = int (iBits * Vc * 100);
+
+  if(volts > 466)
+  {
+    temp = 999;
+  }
+  else if(volts > 418 && volts <= 466)
+  {
+    temp = volts*coldco + 347;
+  }
+  else if(volts > 336 && volts <= 418)
+  {
+    temp = volts*medco + 230;
+  }
+  else if(volts > 234 && volts <= 336)
+  {
+    temp = volts*hotco + 208;
+  }
+  else
+  {
+    temp = 999;
+  }
+
+  return temp;
 }
 
