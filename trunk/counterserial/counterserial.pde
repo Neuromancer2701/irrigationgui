@@ -1,4 +1,3 @@
-
 #include <PID.h>
 #include <Time.h>
 #include <TimeAlarms.h>
@@ -28,7 +27,8 @@
 
 
 
-char cmd[3];
+char cFirstChar;
+char cCommand;
 int iSetAlarms_g;
 volatile unsigned long ulTimer = 0;
 float fEarthTemp = 0;
@@ -49,7 +49,8 @@ enum command
   sync = 2,
   pconstant = 3,
   iconstant = 4,
-  dconstant = 5
+  dconstant = 5,
+  checktime = 6
 };
 
 /* Functions */
@@ -62,6 +63,8 @@ void updateIconstants();
 void updateDconstants();
 void sunset();
 void sunrise();
+void sendCurrentTime();
+
 void OneMsCounter(void)
 {
  ulTimer++;
@@ -75,9 +78,6 @@ void setup()
 {
    // initialize the serial communication:
    Serial.begin(38400);
-   MsTimer2::set(1, OneMsCounter); // 1ms period
-   MsTimer2::start();
-   iSetAlarms_g = 1;
 }
 
 
@@ -92,9 +92,12 @@ void loop()
  
   if(iSetAlarms_g)
   {
+    MsTimer2::set(1, OneMsCounter); // 1ms period
+    MsTimer2::start();
     Alarm.alarmRepeat(SUNRISE,0,0, sunrise);
     Alarm.alarmRepeat(SUNSET,0,0,sunset);
     iSetAlarms_g = 0;
+    //Serial.print("Alarms set!!!!");
   }
   
   earth.calulateDuty(fEarthTemp);
@@ -111,18 +114,19 @@ void loop()
 
 void protocol()
 {
-	if( Serial.available() >= 3 ) 
-	{  // command length is 2 bytes
-	 cmd[0] = Serial.read();
-	 cmd[1] = Serial.read();
-	 cmd[2] = Serial.read();
-	}
-
+  int iParseFlag = 0;
+          
+  	cFirstChar = Serial.peek();
+	if( Serial.available() >= 2 && cFirstChar == 'G')  // command length is 2 bytes
+	{  
   
-
-	if(cmd[0] == 'G' && cmd[1] == 'S')
-	{
-         switch(cmd[2])
+         cFirstChar = Serial.read();
+         cCommand   = Serial.read();         
+         
+         //Serial.print("Got GS\n CMD: ");
+         //Serial.println(cCommand);
+         
+         switch(cCommand - '0')
          {
           case data:
           sendData();
@@ -142,15 +146,19 @@ void protocol()
             		 
           case dconstant:
           updateDconstants();
-          break;          
+          break;
+          
+          case checktime:
+          sendCurrentTime();
+          break;
           
           default:
           //unknown command
           break;
           }
-	  cmd[0] = 0;
-          cmd[1] = 0;
-          cmd[2] = 0;	
+          Serial.flush();
+          cFirstChar = 0; 
+          cCommand = 0;
 	}
 
 }
@@ -163,26 +171,43 @@ void sendData()
  
  
  sprintf(acBuffer, "GS%04d%04d%04d%02d%02d%02dDONE",iCounter, (iCounter * 2),(iCounter * 3),(iCounter/16),(iCounter/10),(iCounter/12));
- Serial.print(acBuffer);  
+ Serial.println(acBuffer);  
 }
-            		 
+
+void sendCurrentTime()
+{
+  Serial.println(now());
+}         		 
           
 void syncTime()
 {
+  
 	unsigned char ucByte = 0;
 	int iCounter = 0;
 	char acTime[32];
+        int iTimeout = 0;
 	int iError = 0;
 	time_t tTime = 0;
-	
-	while(ucByte != '\n')
+
+
+        while(Serial.available() < 10 && iTimeout < 10)
+        {
+          delay(100);
+          iTimeout++; 
+        }
+
+	while(1)
 	{
 		ucByte = Serial.read();
+                if(ucByte == 'S')
+                  break;
 		acTime[iCounter] = ucByte;
 		iCounter++;
 		if(iCounter >=32)
-			iError  = 1; //Warning did not get terminating character
-			break;
+                {
+		 iError  = 1; //Warning did not get terminating character
+		 break;
+                }
 	}
 	
 	if(iError)
@@ -194,9 +219,9 @@ void syncTime()
 	  tTime = (time_t) atol(acTime);
 	  setTime(tTime);
 	  iSetAlarms_g = 1;
-	  Serial.print("Synced");
+	  //Serial.println("Synced!!");
 	}
-	
+
 	
 }
             		 
@@ -291,6 +316,7 @@ void sunrise()
 {
   bitClear(PORTD, FIRE_PIN);
 }
+
 
 int calculateTemp(int iBits)
 {
