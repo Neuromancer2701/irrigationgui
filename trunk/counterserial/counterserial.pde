@@ -29,6 +29,8 @@
 
 char cFirstChar;
 char cCommand;
+char acPIDscanTemplate[32] = "%f %f %f";
+
 int iSetAlarms_g;
 volatile unsigned long ulTimer = 0;
 float fEarthTemp = 0;
@@ -47,10 +49,9 @@ enum command
 {
   data = 1,
   sync = 2,
-  pconstant = 3,
-  iconstant = 4,
-  dconstant = 5,
-  checktime = 6
+  windconstant = 3,
+  earthconstant = 4,
+  checktime = 5
 };
 
 /* Functions */
@@ -58,9 +59,8 @@ int calculateTemp(int iBits);
 void protocol();
 void sendData();         
 void syncTime();		 
-void updatePconstants();
-void updateIconstants();
-void updateDconstants();
+void updateWindConstants();
+void updateEarthConstants();
 void sunset();
 void sunrise();
 void sendCurrentTime();
@@ -123,9 +123,6 @@ void protocol()
          cFirstChar = Serial.read();
          cCommand   = Serial.read();         
          
-         //Serial.print("Got GS\n CMD: ");
-         //Serial.println(cCommand);
-         
          switch(cCommand - '0')
          {
           case data:
@@ -136,16 +133,12 @@ void protocol()
           syncTime();
           break;
             		 
-          case pconstant:
-          updatePconstants();
+          case windconstant:
+          updateWindConstants();
           break;
            		 
-          case iconstant:
-          updateIconstants();
-          break;
-            		 
-          case dconstant:
-          updateDconstants();
+          case earthconstant:
+          updateEarthConstants();
           break;
           
           case checktime:
@@ -225,7 +218,7 @@ void syncTime()
 	
 }
             		 
-void  updatePconstants()
+void updateEarthConstants()
 {
 	unsigned char ucByte = 0;
 	int iCounter = 0;
@@ -244,43 +237,15 @@ void  updatePconstants()
 	
 	if(iError)
 	{
-          Serial.print("P Const error");
+          Serial.print("Earth Const error");
 	}
 	else
 	{
-
-	}
-}
-           		 
-
-void updateIconstants()
-{
-	unsigned char ucByte = 0;
-	int iCounter = 0;
-	char acBuffer[32];
-	int iError = 0;
-	
-	while(ucByte != '\n')
-	{
-		ucByte = Serial.read();
-		acBuffer[iCounter] = ucByte;
-		iCounter++;
-		if(iCounter >=32)
-			iError  = 1; //Warning did not get terminating character
-			break;
-	}
-	
-	if(iError)
-	{
-          Serial.print("I Const error");
-	}
-	else
-	{
-		
+		sscanf(acBuffer,acPIDscanTemplate, &earth.fProportional, &earth.fIntegral, &earth.fDerivative);
 	}
 }
             		 
-void updateDconstants()
+void updateWindConstants()
 {
 	unsigned char ucByte = 0;
 	int iCounter = 0;
@@ -299,11 +264,11 @@ void updateDconstants()
 	
 	if(iError)
 	{
-    	  Serial.print("D Const error");
+    	  Serial.print("Wind Const error");
 	}
 	else
 	{
-
+		sscanf(acBuffer,acPIDscanTemplate, &wind.fProportional, &wind.fIntegral, &wind.fDerivative);
 	}
 }
 
