@@ -1,49 +1,57 @@
-#include <PID.h>
+#include <Thermistor.h>
+#include <PID_Beta6.h>
 #include <Time.h>
 #include <TimeAlarms.h>
 #include <MsTimer2.h>
 
-#define SUNSET  19  // Variable is the hour of sunset 19 = 7 o'clock
-#define SUNRISE 7	// Same as above
-#define EARTH_HOT_PIN  0
-#define EARTH_COLD_PIN 1
-#define WIND_HOT_PIN   2
-#define WIND_COLD_PIN  3
-#define FIRE_PIN       4
-#define WATER_PIN      5
+
+/*  Defines  */
+#define SUNSET          20  // Variable is the hour of sunset 20 = 8 pm o'clock
+#define SUNRISE         6	// 6 am
+#define WATER_TIME      5000     // 5 seconds
+#define FIRE_TIME       600000    //10 minutes
+#define PERIOD          1000
+#define EARTH_PIN       7
+#define WIND_HOT_PIN    6
+#define WIND_COLD_PIN   3
+#define FIRE_PIN        5
+#define WATER_PIN       4
 
 #define READ_EARTH_PIN  0
 #define READ_WIND_PIN   1
 #define READ_FIRE_PIN   2
 #define READ_WATER_PIN  3
 
-
-/* Temporary variable from germination station code */
-#define coldco 		-0.711
-#define medco 		-0.432
-#define hotco 		-0.368
-#define Vc  		0.0049      // 5V/1024bits
-
-
-
-
+/* Strings and Characters */
 char cFirstChar;
 char cCommand;
 char acPIDscanTemplate[32] = "%f %f %f";
 
+/* Ints and floats */
 int iSetAlarms_g;
-volatile unsigned long ulTimer = 0;
-float fEarthTemp = 0;
-float fWindTemp  = 0;
-int iEarthRaw = 0;
-int iWindRaw  = 0;
+int iFireOnFlag = 0;
+unsigned long ulEarthTimer = 0;
+unsigned long ulWindTimer = 0;
+
+double dEarthTemp = 0;
+double dEarthDuty = 0;
+double dEarthSetPoint = 80;
+
+double dWindTemp  = 0;
+double dWindDuty  = 0;
+double dWindSetPoint  = 75;
+
 int iFireRaw  = 0;
 int iWaterRaw = 0;
+unsigned long ulWaterTimer = 0;
+unsigned long ulFireTimer  = 0;
 
 
 /* Classes,Struct Enums*/
-PID earth(&ulTimer, 30);
-PID wind(&ulTimer, 30);
+Thermistor earth_thermistor(READ_EARTH_PIN);
+Thermistor wind_thermistor(READ_WIND_PIN);
+PID earth(&dEarthTemp,&dEarthDuty,&dEarthSetPoint,3,4,1);
+PID wind(&dWindTemp,&dWindDuty,&dWindSetPoint,3,4,1);
 
 enum command 
 {
@@ -55,7 +63,7 @@ enum command
 };
 
 /* Functions */
-int calculateTemp(int iBits);
+void determineIO();
 void protocol();
 void sendData();         
 void syncTime();		 
@@ -65,12 +73,6 @@ void sunset();
 void sunrise();
 void sendCurrentTime();
 
-void OneMsCounter(void)
-{
- ulTimer++;
-}
-
-
 
 
     
@@ -78,38 +80,115 @@ void setup()
 {
    // initialize the serial communication:
    Serial.begin(38400);
+   earth.SetOutputLimits(0,100);
+   dEarthDuty = 50;  /* start at 50% duty cycle */
+   earth.SetMode(AUTO);
+   
+   wind.SetOutputLimits(-100,100);  /* Not sure if this is going to work */
+   dWindDuty = 50;  /* start at 50% duty cycle */ 
+   wind.SetMode(AUTO);
+   
+   ulEarthTimer = ulWindTimer = ulFireTimer = millis();
 }
 
 
 
 void loop() 
 {
-  iEarthRaw = analogRead(READ_EARTH_PIN);
-  iWindRaw  = analogRead(READ_WIND_PIN);
+  dEarthTemp = earth_thermistor.getTemp();
+  dWindTemp  = wind_thermistor.getTemp();
   iFireRaw = analogRead(READ_FIRE_PIN);
   iWaterRaw  = analogRead(READ_WATER_PIN);
   
  
   if(iSetAlarms_g)
   {
-    MsTimer2::set(1, OneMsCounter); // 1ms period
-    MsTimer2::start();
     Alarm.alarmRepeat(SUNRISE,0,0, sunrise);
     Alarm.alarmRepeat(SUNSET,0,0,sunset);
     iSetAlarms_g = 0;
     //Serial.print("Alarms set!!!!");
   }
   
-  earth.calulateDuty(fEarthTemp);
-  wind.calulateDuty(fWindTemp);
-
-  earth.UpdateIOPins(PORTD, EARTH_HOT_PIN , EARTH_COLD_PIN);
-  wind.UpdateIOPins(PORTD, WIND_HOT_PIN, WIND_COLD_PIN);
+  determineIO();
+  
   
   protocol();
 
 }
-
+void determineIO()
+{
+  
+  /* Earth  PWM IO*/
+   if((millis() - ulEarthTimer) > PERIOD )
+   {
+     ulEarthTimer += PERIOD;
+     bitSet(PORTD, EARTH_PIN);
+   }
+   
+   if((millis() - ulEarthTimer) > (dEarthDuty * 10) )
+   {
+     bitClear(PORTD, EARTH_PIN);
+   }
+ 
+ 
+  /* Wind  PWM IO*/ 
+   if((millis() - ulWindTimer) > PERIOD )
+   {
+     ulWindTimer  += PERIOD;
+     bitSet(PORTD, WIND_HOT_PIN);
+     bitSet(PORTD, WIND_COLD_PIN);
+   }
+   
+   if(dWindDuty >= 0)
+   {
+     bitClear(PORTD, WIND_COLD_PIN);
+     if((millis() - ulWindTimer) > (dWindDuty * 10) )
+     {
+       bitClear(PORTD, WIND_HOT_PIN);
+     }
+   }
+   else
+   {
+     bitClear(PORTD, WIND_HOT_PIN);
+     if((millis() - ulWindTimer) > (dWindDuty * -10) )
+     {
+       bitClear(PORTD, WIND_COLD_PIN);
+     }
+   }
+   
+   
+     /* Water IO*/
+   if(iWaterRaw > 400)
+   {
+     bitSet(PORTD, WATER_PIN);
+     ulWaterTimer = millis();
+   }
+   
+   if(millis() - ulWaterTimer > WATER_TIME && ulWaterTimer)
+   {
+     bitClear(PORTD, WATER_PIN);
+     ulWaterTimer = 0;
+   }
+   
+   
+   
+   /* Fire  IO  */
+   if(millis() - ulFireTimer > FIRE_TIME)
+   { 
+     if(iFireRaw < 450 && iFireOnFlag )
+     {
+       bitSet(PORTD, FIRE_PIN);
+     }
+     else
+     {
+       bitClear(PORTD, FIRE_PIN);
+     }
+      
+      ulFireTimer += FIRE_TIME;
+   }
+   
+   
+}
 
 
 void protocol()
@@ -159,12 +238,10 @@ void protocol()
 
 void sendData()
 {
- char acBuffer[64];
- int iCounter = 17;
- 
- 
- sprintf(acBuffer, "GS%04d%04d%04d%02d%02d%02dDONE",iCounter, (iCounter * 2),(iCounter * 3),(iCounter/16),(iCounter/10),(iCounter/12));
- Serial.println(acBuffer);  
+   char acBuffer[64];
+   
+   sprintf(acBuffer, "GS%03d%03d%04d%04d%03d%03dDONE\n",int(dEarthTemp*10), int(dWindTemp*10),iFireRaw,iWaterRaw,int(dEarthDuty) ,int(dWindDuty) );
+   Serial.println(acBuffer);  
 }
 
 void sendCurrentTime()
@@ -224,6 +301,9 @@ void updateEarthConstants()
 	int iCounter = 0;
 	char acBuffer[32];
 	int iError = 0;
+        double Pconst = 0.0;
+        double Iconst = 0.0;
+        double Dconst = 0.0;
 	
 	while(ucByte != '\n')
 	{
@@ -241,7 +321,8 @@ void updateEarthConstants()
 	}
 	else
 	{
-		sscanf(acBuffer,acPIDscanTemplate, &earth.fProportional, &earth.fIntegral, &earth.fDerivative);
+	 sscanf(acBuffer,acPIDscanTemplate, &Pconst, &Iconst, &Dconst);
+         earth.SetTunings(Pconst,Iconst,Dconst);
 	}
 }
             		 
@@ -251,6 +332,9 @@ void updateWindConstants()
 	int iCounter = 0;
 	char acBuffer[32];
 	int iError = 0;
+        double Pconst = 0.0;
+        double Iconst = 0.0;
+        double Dconst = 0.0;
 	
 	while(ucByte != '\n')
 	{
@@ -268,49 +352,19 @@ void updateWindConstants()
 	}
 	else
 	{
-		sscanf(acBuffer,acPIDscanTemplate, &wind.fProportional, &wind.fIntegral, &wind.fDerivative);
+	 sscanf(acBuffer,acPIDscanTemplate, &Pconst, &Iconst, &Dconst);
+         wind.SetTunings(Pconst,Iconst,Dconst);
 	}
 }
 
 void sunset()
 {
+  iFireOnFlag = 1;
   bitSet(PORTD, FIRE_PIN);
 }
 
 void sunrise()
 {
+  iFireOnFlag = 0;
   bitClear(PORTD, FIRE_PIN);
 }
-
-
-int calculateTemp(int iBits)
-{
-  int temp  = 0;
-  int volts = 0;
-  
-  volts = int (iBits * Vc * 100);
-
-  if(volts > 466)
-  {
-    temp = 999;
-  }
-  else if(volts > 418 && volts <= 466)
-  {
-    temp = volts*coldco + 347;
-  }
-  else if(volts > 336 && volts <= 418)
-  {
-    temp = volts*medco + 230;
-  }
-  else if(volts > 234 && volts <= 336)
-  {
-    temp = volts*hotco + 208;
-  }
-  else
-  {
-    temp = 999;
-  }
-
-  return temp;
-}
-
