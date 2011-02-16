@@ -17,10 +17,10 @@
 #define FIRE_PIN        5
 #define WATER_PIN       4
 
-#define READ_EARTH_PIN  0
-#define READ_WIND_PIN   1
-#define READ_FIRE_PIN   2
-#define READ_WATER_PIN  3
+#define READ_EARTH_PIN  3
+#define READ_WIND_PIN   2
+#define READ_FIRE_PIN   1
+#define READ_WATER_PIN  0
 
 /* Strings and Characters */
 char cFirstChar;
@@ -80,6 +80,12 @@ void setup()
 {
    // initialize the serial communication:
    Serial.begin(38400);
+  pinMode(EARTH_PIN  , OUTPUT);
+  pinMode(WIND_HOT_PIN , OUTPUT);
+  pinMode(WIND_COLD_PIN , OUTPUT);
+  pinMode(FIRE_PIN , OUTPUT);
+  pinMode(WATER_PIN , OUTPUT);
+   
    earth.SetOutputLimits(0,100);
    dEarthDuty = 50;  /* start at 50% duty cycle */
    earth.SetMode(AUTO);
@@ -109,6 +115,8 @@ void loop()
     //Serial.print("Alarms set!!!!");
   }
   
+  earth.Compute();
+  wind.Compute();
   determineIO();
   
   
@@ -123,10 +131,12 @@ void determineIO()
    {
      ulEarthTimer += PERIOD;
      bitSet(PORTD, EARTH_PIN);
+      Serial.println("Earth High"); 
    }
    
    if((millis() - ulEarthTimer) > (dEarthDuty * 10) )
    {
+      Serial.println("Earth Low");
      bitClear(PORTD, EARTH_PIN);
    }
  
