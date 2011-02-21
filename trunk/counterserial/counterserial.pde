@@ -11,6 +11,7 @@
 #define WATER_TIME      5000     // 5 seconds
 #define FIRE_TIME       600000    //10 minutes
 #define PERIOD          1000
+#define WIND_PERIOD     10000
 #define EARTH_PIN       7
 #define WIND_HOT_PIN    6
 #define WIND_COLD_PIN   3
@@ -95,6 +96,8 @@ void setup()
    wind.SetMode(AUTO);
    
    ulEarthTimer = ulWindTimer = ulFireTimer = millis();
+   randomSeed(analogRead(0));
+
 }
 
 
@@ -131,20 +134,18 @@ void determineIO()
    {
      ulEarthTimer += PERIOD;
      bitSet(PORTD, EARTH_PIN);
-      Serial.println("Earth High"); 
    }
    
    if((millis() - ulEarthTimer) > (dEarthDuty * 10) )
    {
-      Serial.println("Earth Low");
      bitClear(PORTD, EARTH_PIN);
    }
  
  
   /* Wind  PWM IO*/ 
-   if((millis() - ulWindTimer) > PERIOD )
+   if((millis() - ulWindTimer) > WIND_PERIOD )
    {
-     ulWindTimer  += PERIOD;
+     ulWindTimer  += WIND_PERIOD;
      bitSet(PORTD, WIND_HOT_PIN);
      bitSet(PORTD, WIND_COLD_PIN);
    }
@@ -152,7 +153,7 @@ void determineIO()
    if(dWindDuty >= 0)
    {
      bitClear(PORTD, WIND_COLD_PIN);
-     if((millis() - ulWindTimer) > (dWindDuty * 10) )
+     if((millis() - ulWindTimer) > (dWindDuty * 100) )
      {
        bitClear(PORTD, WIND_HOT_PIN);
      }
@@ -160,7 +161,7 @@ void determineIO()
    else
    {
      bitClear(PORTD, WIND_HOT_PIN);
-     if((millis() - ulWindTimer) > (dWindDuty * -10) )
+     if((millis() - ulWindTimer) > (dWindDuty * -100) )
      {
        bitClear(PORTD, WIND_COLD_PIN);
      }
@@ -250,7 +251,9 @@ void sendData()
 {
    char acBuffer[64];
    
-   sprintf(acBuffer, "GS%03d%03d%04d%04d%03d%03dDONE\n",int(dEarthTemp*10), int(dWindTemp*10),iFireRaw,iWaterRaw,int(dEarthDuty) ,int(dWindDuty) );
+   //sprintf(acBuffer, "GS%03d%03d%04d%04d%03d%03dDONE\n",int(dEarthTemp*10), int(dWindTemp*10),iFireRaw,iWaterRaw,int(dEarthDuty) ,int(dWindDuty) );
+   sprintf(acBuffer, "GS%03d%03d%04d%04d%03d%03dDONE\n",random(1023), random(1023),random(1000),random(1023),random(100) ,random(100) );
+
    Serial.println(acBuffer);  
 }
 
