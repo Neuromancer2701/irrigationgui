@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'mainwindow.ui'
 **
-** Created: Sun Feb 20 21:13:19 2011
+** Created: Tue Mar 15 21:55:38 2011
 **      by: Qt User Interface Compiler version 4.7.0
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -22,6 +22,7 @@
 #include <QtGui/QMenuBar>
 #include <QtGui/QStatusBar>
 #include <QtGui/QToolBar>
+#include <QtGui/QVBoxLayout>
 #include <QtGui/QWidget>
 
 QT_BEGIN_NAMESPACE
@@ -50,8 +51,11 @@ public:
     QLineEdit *EarthDutylineEdit;
     QLabel *label_7;
     QLineEdit *WindDutylineEdit;
+    QVBoxLayout *verticalLayout;
+    QHBoxLayout *horizontalLayout_5;
     QLabel *label_8;
     QLineEdit *UnixTimelineEdit;
+    QLabel *statusLabel;
     QMenuBar *menuBar;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
@@ -60,7 +64,7 @@ public:
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName(QString::fromUtf8("MainWindow"));
-        MainWindow->resize(600, 400);
+        MainWindow->resize(709, 482);
         centralWidget = new QWidget(MainWindow);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         horizontalLayoutWidget = new QWidget(centralWidget);
@@ -169,20 +173,37 @@ public:
 
         horizontalLayout_3->addWidget(WindDutylineEdit);
 
+        verticalLayout = new QVBoxLayout();
+        verticalLayout->setSpacing(6);
+        verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
+        horizontalLayout_5 = new QHBoxLayout();
+        horizontalLayout_5->setSpacing(6);
+        horizontalLayout_5->setObjectName(QString::fromUtf8("horizontalLayout_5"));
         label_8 = new QLabel(horizontalLayoutWidget_3);
         label_8->setObjectName(QString::fromUtf8("label_8"));
 
-        horizontalLayout_3->addWidget(label_8);
+        horizontalLayout_5->addWidget(label_8);
 
         UnixTimelineEdit = new QLineEdit(horizontalLayoutWidget_3);
         UnixTimelineEdit->setObjectName(QString::fromUtf8("UnixTimelineEdit"));
 
-        horizontalLayout_3->addWidget(UnixTimelineEdit);
+        horizontalLayout_5->addWidget(UnixTimelineEdit);
+
+
+        verticalLayout->addLayout(horizontalLayout_5);
+
+        statusLabel = new QLabel(horizontalLayoutWidget_3);
+        statusLabel->setObjectName(QString::fromUtf8("statusLabel"));
+
+        verticalLayout->addWidget(statusLabel);
+
+
+        horizontalLayout_3->addLayout(verticalLayout);
 
         MainWindow->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(MainWindow);
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 600, 21));
+        menuBar->setGeometry(QRect(0, 0, 709, 21));
         MainWindow->setMenuBar(menuBar);
         mainToolBar = new QToolBar(MainWindow);
         mainToolBar->setObjectName(QString::fromUtf8("mainToolBar"));
@@ -207,6 +228,7 @@ public:
         label_6->setText(QApplication::translate("MainWindow", "Earth Duty", 0, QApplication::UnicodeUTF8));
         label_7->setText(QApplication::translate("MainWindow", "Wind Duty", 0, QApplication::UnicodeUTF8));
         label_8->setText(QApplication::translate("MainWindow", "Time", 0, QApplication::UnicodeUTF8));
+        statusLabel->setText(QApplication::translate("MainWindow", "Status", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 
 };
