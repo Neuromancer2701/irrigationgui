@@ -3,17 +3,19 @@
 #include <Time.h>
 #include <TimeAlarms.h>
 #include <MsTimer2.h>
+#include <stdlib.h>
 
 
 /*  Defines  */
 #define SUNSET          20  // Variable is the hour of sunset 20 = 8 pm o'clock
 #define SUNRISE         6	// 6 am
 #define WATER_TIME      5000     // 5 seconds
+#define WATER_DRY       840
 #define FIRE_TIME       600000    //10 minutes
 #define PERIOD          1000
 #define WIND_PERIOD     10000
-#define EARTH_PIN       7
-#define WIND_HOT_PIN    6
+#define EARTH_PIN       6
+#define WIND_HOT_PIN    7
 #define WIND_COLD_PIN   3
 #define FIRE_PIN        5
 #define WATER_PIN       4
@@ -46,7 +48,7 @@ int iFireRaw  = 0;
 int iWaterRaw = 0;
 unsigned long ulWaterTimer = 0;
 unsigned long ulFireTimer  = 0;
-
+time_t systemtime_g = 0;
 
 /* Classes,Struct Enums*/
 Thermistor earth_thermistor(READ_EARTH_PIN);
@@ -97,6 +99,11 @@ void setup()
    
    ulEarthTimer = ulWindTimer = ulFireTimer = millis();
    randomSeed(analogRead(0));
+   
+   /*while(!iSetAlarms_g && (millis() - ulEarthTimer < 6000) )
+   {
+    protocol();
+   }*/
 
 }
 
@@ -105,23 +112,23 @@ void setup()
 void loop() 
 {
   dEarthTemp = earth_thermistor.getTemp();
-  dWindTemp  = wind_thermistor.getTemp();
-  iFireRaw = analogRead(READ_FIRE_PIN);
+  //dWindTemp  = wind_thermistor.getTemp();
+  //iFireRaw = analogRead(READ_FIRE_PIN);
   iWaterRaw  = analogRead(READ_WATER_PIN);
   
  
-  if(iSetAlarms_g)
+  /*if(iSetAlarms_g)
   {
     Alarm.alarmRepeat(SUNRISE,0,0, sunrise);
     Alarm.alarmRepeat(SUNSET,0,0,sunset);
     iSetAlarms_g = 0;
     //Serial.print("Alarms set!!!!");
-  }
+  }*/
   
   earth.Compute();
-  wind.Compute();
+  //wind.Compute();
   determineIO();
-  
+  systemtime_g = now();
   
   protocol();
 
@@ -250,16 +257,20 @@ void protocol()
 void sendData()
 {
    char acBuffer[64];
+   char acTime[16];
+   int iRandom = 0;
    
-   //sprintf(acBuffer, "GS%03d%03d%04d%04d%03d%03dDONE\n",int(dEarthTemp*10), int(dWindTemp*10),iFireRaw,iWaterRaw,int(dEarthDuty) ,int(dWindDuty) );
-   sprintf(acBuffer, "GS%03d%03d%04d%04d%03d%03dDONE\n",random(1023), random(1023),random(1000),random(1023),random(100) ,random(100) );
+   iRandom = random(9999);
+   ltoa(systemtime_g,acTime,10);
+   sprintf(acBuffer, "GS%04d%04d%04d%04d%03d%03d%sDONE\n",int(dEarthTemp*10), int(dWindTemp*10),iFireRaw,iWaterRaw,int(dEarthDuty) ,int(dWindDuty), acTime);
+   //sprintf(acBuffer, "GS%04d%04d%04d%04d%03d%03d%sDONE\n",iRandom % 1200, iRandom % 1200,iRandom % 1023,iRandom % 1023,iRandom % 100,  iRandom % 100,acTime);
 
    Serial.println(acBuffer);  
 }
 
 void sendCurrentTime()
 {
-  Serial.println(now());
+  Serial.println(systemtime_g);
 }         		 
           
 void syncTime()

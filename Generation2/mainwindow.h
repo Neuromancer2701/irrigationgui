@@ -18,9 +18,11 @@ protected:
     void changeEvent(QEvent *e);
 
 private:
-    Ui::MainWindow *ui;
+   Ui::MainWindow *ui;
    QextSerialPort *port;
-    QTimer *internalTimer;
+   QTimer *internalTimer;
+   void sleepMs(int milliseconds);
+   void SyncTime();
 
 private slots:
     void getdata();         // Polls the arduino for the data string
